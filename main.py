@@ -1,10 +1,8 @@
 import sqlite3
 from telebot import *
 
-API_TOKEN = str(input('Введите токен бота...  '))
+bot = telebot.TeleBot(str(input('Введите токен бота...  ')))
 print('Токен получен, спасибо!')
-
-bot = telebot.TeleBot(API_TOKEN)
 connection = sqlite3.connect('students.db', check_same_thread=False)
 cursor = connection.cursor()
 
@@ -31,9 +29,7 @@ right_answer TEXT NOT NULL,
 teacher_id INTEGER NOT NULL
 )
 ''')
-
-globalVar = {
-    'chatid': {
+Var = {
         'usname': '',
         'school_rank': '',
         'telegram_id': 0,
@@ -47,13 +43,14 @@ globalVar = {
         'right_answer': '',
         'num_homework': 0
     }
+globalVar = {
+    'chatid': Var
 }
 
 
 @bot.message_handler(commands=['start'])
 def start_bot(message):
-    globalVar[str(message.chat.id)] = globalVar['chatid']
-    del globalVar['chatid']
+    globalVar[str(message.chat.id)] = globalVar.pop('chatid')
     stop_message = bot.send_message(message.chat.id,
                                     'Привет! Добро пожаловать в телеграм бот для '
                                     'решения '
@@ -353,4 +350,4 @@ def check(message):
                                           f'\nПравильный ответ: {right}')
 
 
-bot.infinity_polling(timeout=10, long_polling_timeout=5)
+bot.polling(none_stop=True)
