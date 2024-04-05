@@ -1,10 +1,8 @@
 import sqlite3
-import time
-
-import telebot.apihelper
 from telebot import *
 
-API_TOKEN = str(input())
+API_TOKEN = str(input('Введите токен бота...  '))
+print('Токен получен, спасибо!')
 
 bot = telebot.TeleBot(API_TOKEN)
 connection = sqlite3.connect('students.db', check_same_thread=False)
@@ -41,7 +39,13 @@ globalVar = {
         'telegram_id': 0,
         'school': '',
         'school_class': 0,
-        'USERID': 0
+        'USERID': 0,
+        'all_student_2': 0,
+        'stude_class': 0,
+        'name_lesson': '',
+        'home_work': '',
+        'right_answer': '',
+        'num_homework': 0
     }
 }
 
@@ -51,8 +55,10 @@ def start_bot(message):
     globalVar[str(message.chat.id)] = globalVar['chatid']
     del globalVar['chatid']
     stop_message = bot.send_message(message.chat.id,
-                                    'Привет! Добро пожаловать в телеграм бот для решения '
-                                    'домашних заданий, пожалуйста, напиши свою фамилию и имя!')
+                                    'Привет! Добро пожаловать в телеграм бот для '
+                                    'решения '
+                                    'домашних заданий, пожалуйста, напиши свою фамилию '
+                                    'и имя!')
     bot.register_next_step_handler(stop_message, save_name_user)
 
 
@@ -190,10 +196,10 @@ def what_the_class(message):
 
 
 def what_the_lesson(message):
-    global all_student_2
-    global stude_class
+    school = globalVar[str(message.chat.id)]['school']
     try:
         stude_class = int(message.text)
+        globalVar[str(message.chat.id)]['stude_class'] = stude_class
     except:
         bot.send_message(message.chat.id, 'Номер класса должен быть числом!')
         what_the_class(message)
@@ -204,6 +210,7 @@ def what_the_lesson(message):
                    (school, int(message.text)))
     all_student = list(set(cursor.fetchall()))
     all_student_2 = [int(str(i)[1:-2]) for i in all_student]
+    globalVar[str(message.chat.id)]['all_student_2'] = all_student_2
     print(f'All id students from {message.text} class:', all_student_2)
 
     stop_message = bot.send_message(message.chat.id, f'В {message.text} классе, '
@@ -216,17 +223,16 @@ def what_the_lesson(message):
 
 
 def what_the_ask(message):
-    global name_lesson
     name_lesson = message.text
+    globalVar[str(message.chat.id)]['name_lesson'] = name_lesson
     stop_message = bot.send_message(message.chat.id, 'Благодарю! '
                                                      'Теперь введите текст задания!')
     bot.register_next_step_handler(stop_message, what_the_right_answer)
 
 
 def what_the_right_answer(message):
-    global home_work
-
     home_work = message.text
+    globalVar[str(message.chat.id)]['home_work'] = home_work
 
     stop_message = bot.send_message(message.chat.id, 'Осталось только ввести '
                                                      'ответ на задание!')
@@ -234,9 +240,14 @@ def what_the_right_answer(message):
 
 
 def start_mailing1(message):
-    global right_answer
     right_answer = message.text
+    globalVar[str(message.chat.id)]['right_answer'] = right_answer
     teacher_id = int(message.from_user.id)
+
+    name_lesson = globalVar[str(message.chat.id)]['name_lesson']
+    stude_class = globalVar[str(message.chat.id)]['stude_class']
+    home_work = globalVar[str(message.chat.id)]['home_work']
+    all_student_2 = globalVar[str(message.chat.id)]['all_student_2']
 
     cursor.execute('INSERT INTO ask_students (stude_class, name_lesson, home_work, '
                    'right_answer, teacher_id) VALUES (?, ?, ?, ?, ?)',
@@ -287,8 +298,8 @@ def number_works(message):
     k = k[0]
 
     if int(message.text) in all_number_work_2 and int(k) == 1:
-        global num_homework
         num_homework = message.text
+        globalVar[str(message.chat.id)]['num_homework'] = num_homework
         if int(message.text) in all_number_work_2:
             stop_message = bot.send_message(message.chat.id, f'Задание номер '
                                                              f'{message.text}. Введи на '
@@ -299,6 +310,8 @@ def number_works(message):
 
 
 def check(message):
+    num_homework = globalVar[str(message.chat.id)]['num_homework']
+
     cursor.execute(f'SELECT name_us_1 FROM id_students WHERE telegram_id = '
                    f'{message.from_user.id}')
     name_us_1_0 = list(set(cursor.fetchall()))
@@ -340,5 +353,4 @@ def check(message):
                                           f'\nПравильный ответ: {right}')
 
 
-# For non-stop operation of the bot
 bot.infinity_polling(timeout=10, long_polling_timeout=5)
