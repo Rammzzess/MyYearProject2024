@@ -29,7 +29,12 @@ right_answer TEXT NOT NULL,
 teacher_id INTEGER NOT NULL
 )
 ''')
-Var = {
+globalVar = {}
+
+
+@bot.message_handler(commands=['start'])
+def start_bot(message):
+    globalVar[str(message.chat.id)] = {
         'usname': '',
         'school_rank': '',
         'telegram_id': 0,
@@ -43,14 +48,6 @@ Var = {
         'right_answer': '',
         'num_homework': 0
     }
-globalVar = {
-    'chatid': Var
-}
-
-
-@bot.message_handler(commands=['start'])
-def start_bot(message):
-    globalVar[str(message.chat.id)] = globalVar.pop('chatid')
     stop_message = bot.send_message(message.chat.id,
                                     'Привет! Добро пожаловать в телеграм бот для '
                                     'решения '
@@ -161,6 +158,7 @@ def save_school_class(message):
                        f'school_class, k) VALUES (?, ?, ?, ?, ?)',
                        (school, usname, telegram_id, school_class, 0))
         connection.commit()
+        print(f"Зарегистрирован новый ученик: {usname}. {school_class} класс.")
     except:
         bot.send_message(message.chat.id, 'Номер класса должен быть числом!')
         save_school_student_2(message)
